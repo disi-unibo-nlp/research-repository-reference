@@ -324,8 +324,12 @@ From: nvidia/cuda:12.8.0-devel-ubuntu24.04
 
 ### Building the Container:
 
-Now that we have the definition file (`cuda-dev.def`), we need to build the actual container:
 
+```bash
+export APPTAINER_CACHEDIR=/scratch.hpc/lorenzo.molfetta2/.apptainer_cache
+```
+
+Now that we have the definition file (`cuda-dev.def`), we need to build the actual container:
 ```bash
 # Build the .sif container from the .def definition file
 apptainer build --fakeroot cuda-dev.sif cuda-dev.def
