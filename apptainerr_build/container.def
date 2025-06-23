@@ -1,0 +1,92 @@
+Bootstrap: docker
+From: nvidia/cuda:12.8.0-devel-ubuntu24.04
+
+%files
+    apptainer_build/requirements.txt /tmp/requirements.txt
+
+%post
+    # Set non-interactive mode for apt
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # Install system dependencies
+    apt-get update -y && \
+    apt-get install -y \
+        curl \
+        git \
+        bash \
+        nano \
+        python3.12 \
+        python3-pip \
+        python3.12-venv && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
+    
+    # Create and activate virtual environment
+    python3 -m venv /opt/venv
+    
+    # Activate venv and install Python packages
+    . /opt/venv/bin/activate
+    pip install --upgrade pip
+    pip install wrapt --upgrade --ignore-installed
+    pip install gdown
+    
+    # Install requirements
+    pip install --no-cache-dir -r /tmp/requirements.txt
+    
+    # Optional: Install PyTorch with CUDA support
+    # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+    
+    # Create app directory
+    mkdir -p /app
+
+%environment
+    export DEBIAN_FRONTEND=dialog
+    export APP_PATH=/app
+    export PATH="/opt/venv/bin:$PATH"
+    export PYTHONPATH="/app:$PYTHONPATH"
+    
+    # CUDA environment variables (if needed)
+    export CUDA_HOME=/usr/local/cuda
+    export PATH="$CUDA_HOME/bin:$PATH"
+    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+
+%runscript
+    cd /app
+    exec "$@"
+
+%labels
+    Maintainer disi-Unibo-NLP
+    Description CUDA development environment with Python 3.12
+    Version 1.0
+    CUDA_Version 12.8.0
+    Base_OS Ubuntu 24.04
+
+%help
+    This container provides a CUDA-enabled Python development environment.
+    
+    Usage:
+        # Run interactively
+        apptainer shell --nv cuda-dev.sif
+        
+        # Execute Python script
+        apptainer exec --nv cuda-dev.sif python script.py
+        
+        # Check CUDA availability
+        apptainer exec --nv cuda-dev.sif python -c "import torch; print(torch.cuda.is_available())"
+    
+    Note: Use --nv flag to enable NVIDIA GPU support.
+
+%test
+    # Test basic functionality
+    python3 --version
+    pip --version
+    
+    # Test virtual environment
+    . /opt/venv/bin/activate
+    python -c "import sys; print('Virtual env active:', '/opt/venv' in sys.executable)"
+    
+    # Test CUDA (if available)
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        nvidia-smi
+    fi
